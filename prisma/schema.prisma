@@ -13,26 +13,77 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Workout {
-  id          String   @id @default(cuid())
-  name        String
-  duration    Int
-  calories    Int?
-  date        DateTime
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+enum WorkoutStatus {
+  PLANNED
+  DONE
+  SKIPPED
+}
 
-  exercises   Exercise[]
+model User {
+  id        String    @id @default(cuid())
+  googleId  String?   @unique
+  email     String    @unique
+  name      String?
+  picture   String?
+  workouts  Workout[]
+  weeks     Week[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Week {
+  id          String    @id @default(cuid())
+  userId      String
+  title       String
+  startDate   DateTime
+  notes       String?
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workouts Workout[]
+
+  @@index([userId, startDate])
+}
+
+model Workout {
+  id          String        @id @default(cuid())
+  weekId      String
+  userId      String
+  dayOrder    Int
+  dayLabel    String
+  focusTag    String?
+  notes       String?
+  date        DateTime?
+  status      WorkoutStatus @default(PLANNED)
+  completedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  week      Week       @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercises Exercise[]
+
+  @@index([weekId, dayOrder])
+  @@index([userId, dayOrder])
 }
 
 model Exercise {
-  id          String   @id @default(cuid())
-  name        String
-  sets        Int
-  reps        Int
-  weight      Float?
+  id          String    @id @default(cuid())
   workoutId   String
-  createdAt   DateTime @default(now())
+  name        String
+  scheme      String
+  weight      Float?
+  unit        String?
+  comment     String?
+  position    Int       @default(0)
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
 
-  workout     Workout  @relation(fields: [workoutId], references: [id])
+  workout Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+
+  @@index([workoutId, position])
 }
