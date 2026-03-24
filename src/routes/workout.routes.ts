@@ -105,9 +105,12 @@ router.post("/", async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Invalid status" });
     }
 
+    const userId = (req as any).user.id;
+
     const workout = await prisma.workout.create({
       data: {
         weekId,
+        userId,
         dayOrder: typeof dayOrder === "string" ? parseInt(dayOrder, 10) : dayOrder,
         dayLabel,
         focusTag: focusTag || null,

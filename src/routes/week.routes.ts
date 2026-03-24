@@ -1,14 +1,18 @@
 import { Router, Request, Response } from "express";
 import prisma from "../db";
+import { verifyToken } from "../middleware/auth.middleware";
 
 const router = Router();
+router.use(verifyToken);
 
 router.get("/", async (req: Request, res: Response) => {
   try {
     const { full } = req.query as { full?: string };
     const includeFull = full === "true" || full === "1";
+    const userId = (req as any).user.id;
 
     const weeks = await prisma.week.findMany({
+      where: { userId },
       orderBy: { startDate: "desc" },
       include: includeFull
         ? {
@@ -76,8 +80,11 @@ router.post("/", async (req: Request, res: Response) => {
       return res.status(400).json({ message: "title and startDate are required" });
     }
 
+    const userId = (req as any).user.id;
+
     const week = await prisma.week.create({
       data: {
+        userId,
         title,
         startDate: new Date(startDate),
         notes: notes || null

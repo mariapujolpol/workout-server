@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { OAuth2Client } from "google-auth-library";
 import jwt from "jsonwebtoken";
+import prisma from "../db";
 
 const router = Router();
 
@@ -22,20 +23,27 @@ router.post("/google", async (req, res) => {
       return res.status(401).json({ message: "Invalid token" });
     }
 
-    // 🧠 Datos del usuario
-    const user = {
-      googleId: payload.sub,
-      email: payload.email,
-      name: payload.name,
-      picture: payload.picture,
-    };
-
-    console.log("USER:", user);
-
-    // 🔐 Crear token propio (JWT)
-    const appToken = jwt.sign(user, process.env.JWT_SECRET!, {
-      expiresIn: "7d",
+    // 💾 Buscar o crear el usuario en la DB
+    const user = await prisma.user.upsert({
+      where: { googleId: payload.sub },
+      update: {
+        name: payload.name,
+        picture: payload.picture,
+      },
+      create: {
+        googleId: payload.sub,
+        email: payload.email!,
+        name: payload.name,
+        picture: payload.picture,
+      },
     });
+
+    // 🔐 Crear token propio (JWT) con el id de Prisma
+    const appToken = jwt.sign(
+      { id: user.id, email: user.email, name: user.name, picture: user.picture },
+      process.env.JWT_SECRET!,
+      { expiresIn: "7d" }
+    );
 
     res.json({
       token: appToken,

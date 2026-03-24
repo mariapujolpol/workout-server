@@ -19,8 +19,21 @@ enum WorkoutStatus {
   SKIPPED
 }
 
+model User {
+  id        String    @id @default(cuid())
+  googleId  String?   @unique
+  email     String    @unique
+  name      String?
+  picture   String?
+  workouts  Workout[]
+  weeks     Week[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
 model Week {
   id          String    @id @default(cuid())
+  userId      String
   title       String
   startDate   DateTime
   notes       String?
@@ -29,12 +42,16 @@ model Week {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   workouts Workout[]
+
+  @@index([userId, startDate])
 }
 
 model Workout {
   id          String        @id @default(cuid())
   weekId      String
+  userId      String
   dayOrder    Int
   dayLabel    String
   focusTag    String?
@@ -46,9 +63,11 @@ model Workout {
   updatedAt   DateTime      @updatedAt
 
   week      Week       @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   exercises Exercise[]
 
   @@index([weekId, dayOrder])
+  @@index([userId, dayOrder])
 }
 
 model Exercise {
